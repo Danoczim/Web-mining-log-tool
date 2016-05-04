@@ -21,20 +21,36 @@ import java.util.logging.Logger;
  */
 public class LogFilter {
 
-    File file;
-    String delimiter;
-    int counter = 0;
+    private File file;
+    private String delimiter;
+    private int counterLines;
+    private FilterListener listener;
+    private ArrayList<String> unfilteredLog = new ArrayList<>();
 
-    ArrayList<String> unfilteredLog = new ArrayList<>();
-    ArrayList<Object> columnsList = new ArrayList<>();
-
-    String[] fileTypes = new String[]{
-        ".js", ".jpg", ".css", ".png", ".flv", ".gif", ".ico", ".jpeg", ".swf", ".rss", ".xml", ".cur"
+    private String[] fileTypes = new String[]{
+        ".js",
+        ".jpg",
+        ".css",
+        ".png",
+        ".flv",
+        ".gif",
+        ".ico",
+        ".jpeg",
+        ".swf",
+        ".rss",
+        ".xml",
+        ".cur"
     };
 
-    String[] week = new String[]{"05/Dec/2011", "06/Dec/2011", "07/Dec/2011", "08/Dec/2011", "09/Dec/2011", "10/Dec/2011", "11/Dec/2011"};
-
-    FilterListener listener;
+    private String[] week = new String[]{
+        "05/Dec/2011",
+        "06/Dec/2011",
+        "07/Dec/2011",
+        "08/Dec/2011",
+        "09/Dec/2011",
+        "10/Dec/2011",
+        "11/Dec/2011"
+    };
 
     public LogFilter(File file, String delimiter) {
         this.file = file;
@@ -46,45 +62,45 @@ public class LogFilter {
     }
 
     public void loadFile() {
-        listener.onStart();
         new Thread(new Runnable() {
 
             @Override
             public void run() {
                 try {
                     BufferedReader buffReader = new BufferedReader(new FileReader(file));
-                    String line = null;
+                    String line;
+                    counterLines = 0;
 
                     while ((line = buffReader.readLine()) != null) {
-                        listener.onUpdate(0, "Loading file...");
-                        for (String day : week) {
-                            if (line.contains(day)) {
-                                unfilteredLog.add(line);
-                            }
-
-                        }
-
+                        //for (String day : week) {
+                        //if (line.contains(day)) {
+                        unfilteredLog.add(line);
+                        counterLines++;
+                        listener.onUpdate(counterLines, "Loading file...");
+                        //}
+                        //}                        
                     }
 
-                    listener.onUpdate(unfilteredLog.size(), "Filtering file extensions...");
+                    listener.onFirstLoad(counterLines);
 
-                    filterExtensions();
+                    ArrayList<Object> dataList = divideToColumnsForTable(unfilteredLog, delimiter);
 
-                    listener.onUpdate(unfilteredLog.size(), "Filtering status codes...");
+                    listener.onFinish(dataList.size(), dataList);
+                    /*listener.onUpdate(unfilteredLog.size(), "Filtering file extensions...");
 
-                    divideToColumnsForTable(delimiter);
+                     filterExtensions();
 
-                    listener.onUpdate(columnsList.size(), "Filtering status codes and methods...");
+                     listener.onUpdate(unfilteredLog.size(), "Filtering status codes...");    
 
-                    filterStatusCodesAndMethods();
+                     listener.onUpdate(columnsList.size(), "Filtering status codes and methods...");
+
+                     //filterStatusCodesAndMethods();
                     
-                    listener.onUpdate(columnsList.size(), "Filtering robots...");
+                     listener.onUpdate(columnsList.size(), "Filtering robots...");
 
-                    filterRobots();
+                     //filterRobots();
                     
-                    listener.onUpdate(columnsList.size(), "Creating table...");
-                    listener.onFinish(columnsList.size(), columnsList);
-
+                     listener.onUpdate(columnsList.size(), "Creating table...");*/
                 } catch (FileNotFoundException ex) {
                     Logger.getLogger(LogFilter.class.getName()).log(Level.SEVERE, null, ex);
                 } catch (IOException ex) {
@@ -94,93 +110,88 @@ public class LogFilter {
         }).start();
     }
 
-    private ArrayList<Object> divideToColumnsForTable(String delimiter) {
-        columnsList = new ArrayList();
-        Iterator iterator = unfilteredLog.iterator();
+    private ArrayList<Object> divideToColumnsForTable(ArrayList<String> log, String delimiter) {
+        ArrayList<Object> dataTableList = new ArrayList();
+        int actualLine = 0;
+        Iterator iterator = log.iterator();
 
         while (iterator.hasNext()) {
+            listener.onUpdate(++actualLine, "Generating data table...");
             String row = (String) iterator.next();
             String[] parts = row.split(delimiter);
-
-            //Object[] objects = new Object[parts.length];
-            Object[] objects = new Object[12];
+            Object[] objects = new Object[15];
 
             for (int j = 0; j < parts.length; j++) {
-                if (j < 12) {
+                if (j < 15) {
                     objects[j] = parts[j];
                 } else {
-                    objects[11] = (String) objects[11] + "" + parts[j];
-                }
-
-            }
-
-            columnsList.add(objects);
-        }
-
-        unfilteredLog = null;
-        System.gc();
-        return columnsList;
-    }
-
-    private void filterExtensions() {
-        Iterator iterator = unfilteredLog.iterator();
-        while (iterator.hasNext()) {
-            String line = (String) iterator.next();
-
-            fileTypeLoop:
-            for (String fileType : fileTypes) {
-                if (line.contains(fileType)) {
-                    iterator.remove();
-
-                    break fileTypeLoop;
+                    objects[14] = (String) objects[14] + parts[j];
                 }
             }
+            dataTableList.add(objects);
         }
+        return dataTableList;
     }
 
-    private void filterStatusCodesAndMethods() {
-        Iterator iterator = columnsList.iterator();
+    /*
+     private void filterExtensions() {
+     Iterator iterator = unfilteredLog.iterator();
+     while (iterator.hasNext()) {
+     String line = (String) iterator.next();
 
-        while (iterator.hasNext()) {
-            Object[] row = (Object[]) iterator.next();
-            String statusCode = (String) row[8];
-            String method = (String) row[5];
+     fileTypeLoop:
+     for (String fileType : fileTypes) {
+     if (line.contains(fileType)) {
+     iterator.remove();
 
-            if (statusCode.startsWith("4") || statusCode.startsWith("5") || !method.contains("GET")) {
-                iterator.remove();
-            }
+     break fileTypeLoop;
+     }
+     }
+     }
+     }
+    
+     private void filterStatusCodesAndMethods() {
+     Iterator iterator = columnsList.iterator();
 
-        }
-    }
+     while (iterator.hasNext()) {
+     Object[] row = (Object[]) iterator.next();
+     String statusCode = (String) row[8];
+     String method = (String) row[5];
 
-    private void filterRobots() {
-        ArrayList<String> robotsIP = new ArrayList();
+     if (statusCode.startsWith("4") || statusCode.startsWith("5") || !method.contains("GET")) {
+     iterator.remove();
+     }
 
-        for (int i = 0; i < columnsList.size(); i++) {
-            Object[] row = (Object[]) columnsList.get(i);
-            String robotsTxt = (String) row[6];
-            String ip = (String) row[0];
-            if (robotsTxt.contains("robots.txt")) {
-                {
-                    robotsIP.add(ip);
-                }
+     }
+     }
 
-            }
-        }
+     private void filterRobots() {
+     ArrayList<String> robotsIP = new ArrayList();
+
+     for (int i = 0; i < columnsList.size(); i++) {
+     Object[] row = (Object[]) columnsList.get(i);
+     String robotsTxt = (String) row[6];
+     String ip = (String) row[0];
+     if (robotsTxt.contains("robots.txt")) {
+     {
+     robotsIP.add(ip);
+     }
+
+     }
+     }
         
-        Iterator iterator = columnsList.iterator();
+     Iterator iterator = columnsList.iterator();
         
-        while (iterator.hasNext()){
-            String row = (String) ((Object[]) iterator.next())[0];
+     while (iterator.hasNext()){
+     String row = (String) ((Object[]) iterator.next())[0];
             
-            robotsLoop:
-            for (String robotIp : robotsIP){
-                if (row.equals(robotIp)){
-                    iterator.remove();
-                    break robotsLoop;
-                }
-            }
-        }
-    }
-
+     robotsLoop:
+     for (String robotIp : robotsIP){
+     if (row.equals(robotIp)){
+     iterator.remove();
+     break robotsLoop;
+     }
+     }
+     }
+     }*/
 }

@@ -13,7 +13,7 @@ import java.util.ArrayList;
  */
 public interface FilterListener {
     
-    void onStart();
+    void onFirstLoad(int allLines);
     void onUpdate(int actualLine, String status);
     void onFinish(int lines, ArrayList<Object> colums);
 }
