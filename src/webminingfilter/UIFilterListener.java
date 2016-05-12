@@ -11,9 +11,9 @@ import java.util.ArrayList;
  *
  * @author Kušický
  */
-public interface FilterListener {
-    
+public interface UIFilterListener {
     void onFirstLoad(int allLines);
     void onUpdate(int actualLine, String status);
-    void onFinish(int lines, ArrayList<Object> colums);
+    void onFinish(int lines, ArrayList<Object[]> colums);
+    void onFilterFileError(String message);
 }
