@@ -30,7 +30,8 @@ public class LogFilter {
     private int URLColumnNumber;
     private int methodColumnNumber;
     private int statusCodeColumnNumber;
-
+    private int agentColumnNumber;
+    
     private final UIFilterListener listener;
     private ArrayList<String> unfilteredLog = new ArrayList<>();
     private ArrayList<Object[]> dataList;
@@ -65,7 +66,7 @@ public class LogFilter {
         this.delimiter = delimiter;
         this.filterDates = filterDates;
         this.listener = filterListener;
-        this.URLColumnNumber = this.methodColumnNumber = this.statusCodeColumnNumber = -1;
+        this.URLColumnNumber = this.methodColumnNumber = this.statusCodeColumnNumber = this.agentColumnNumber = -1;
     }
 
     public void setURLColumnNumber(int URLColumnNumber) {
@@ -80,6 +81,10 @@ public class LogFilter {
         this.methodColumnNumber = methodColumnNumber - 1;
     }
 
+    public void setAgentColumnNumber(int agentColumnNumber){
+        this.agentColumnNumber = agentColumnNumber - 1;
+    }
+    
     public void filterFile() {
         new Thread(new Runnable() {
             @Override
@@ -221,10 +226,13 @@ public class LogFilter {
         for (int i = 0; i < data.size(); i++) {
             listener.onUpdate(i + 1, "Finding robots...");
             String url = (String) data.get(i)[URLColumnNumber];
-            if (url.contains("robots.txt")) {
+            String agent = (String) data.get(i)[agentColumnNumber] + " ";
+            if (url.contains("robots.txt") || (agent.contains("bot") || agent.contains("crawler"))) {
                 robotsIP.add((String) data.get(i)[0]);
             }
         }
+        
+        
         List<Integer> toRemove = new ArrayList<Integer>();
         for (int i = 0; i < data.size(); i++) {
             listener.onUpdate(i + 1, "Filtering robots...");
@@ -233,9 +241,11 @@ public class LogFilter {
                 toRemove.add(i);
             }
         }
+         
         Collections.reverse(toRemove);
         for (Integer position : toRemove) {
             data.remove(position.intValue());
         }
     }
+    
 }
