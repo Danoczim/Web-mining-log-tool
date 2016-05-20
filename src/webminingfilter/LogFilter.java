@@ -10,16 +10,22 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
+import java.text.DateFormat;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
+import java.util.TimeZone;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
  *
- * @author Danóczi
+ * @author Danóczi & Kušický :D
  */
 public class LogFilter {
 
@@ -31,7 +37,8 @@ public class LogFilter {
     private int methodColumnNumber;
     private int statusCodeColumnNumber;
     private int agentColumnNumber;
-    
+    private int dateColumnNumber;
+
     private final UIFilterListener listener;
     private ArrayList<String> unfilteredLog = new ArrayList<>();
     private ArrayList<Object[]> dataList;
@@ -66,7 +73,7 @@ public class LogFilter {
         this.delimiter = delimiter;
         this.filterDates = filterDates;
         this.listener = filterListener;
-        this.URLColumnNumber = this.methodColumnNumber = this.statusCodeColumnNumber = this.agentColumnNumber = -1;
+        this.URLColumnNumber = this.methodColumnNumber = this.statusCodeColumnNumber = this.agentColumnNumber = this.dateColumnNumber = -1;
     }
 
     public void setURLColumnNumber(int URLColumnNumber) {
@@ -81,10 +88,14 @@ public class LogFilter {
         this.methodColumnNumber = methodColumnNumber - 1;
     }
 
-    public void setAgentColumnNumber(int agentColumnNumber){
+    public void setAgentColumnNumber(int agentColumnNumber) {
         this.agentColumnNumber = agentColumnNumber - 1;
     }
     
+    public void setDateColumnNumber(int dateColumnNumber){
+        this.dateColumnNumber = dateColumnNumber -1;
+    }
+
     public void filterFile() {
         new Thread(new Runnable() {
             @Override
@@ -113,9 +124,14 @@ public class LogFilter {
                 filterStatusCodesAndMethods(dataList);
 
                 listener.onFinish(dataList.size(), dataList);
-                
-                filterRobots(dataList);
 
+                filterRobots(dataList);
+                
+                try {
+                    generateUnixTime(dataList);
+                } catch (ParseException ex) {
+                    Logger.getLogger(LogFilter.class.getName()).log(Level.SEVERE, null, ex);
+                }
                 listener.onFinish(dataList.size(), dataList);
             }
         }).start();
@@ -166,24 +182,45 @@ public class LogFilter {
     private ArrayList<Object[]> divideToColumnsForTable(ArrayList<String> log, String delimiter) {
         ArrayList<Object[]> dataTableList = new ArrayList();
         int actualLine = 0;
+
         Iterator iterator = log.iterator();
 
         while (iterator.hasNext()) {
             listener.onUpdate(++actualLine, "Generating data table...");
             String row = (String) iterator.next();
             String[] parts = row.split(delimiter);
-            Object[] objects = new Object[15];
+            Object[] objects = new Object[16];
 
             for (int j = 0; j < parts.length; j++) {
                 if (j < 15) {
                     objects[j] = parts[j];
                 } else {
                     objects[14] = (String) objects[14] + parts[j];
-                }
+                                    }
             }
+
             dataTableList.add(objects);
         }
+
         return dataTableList;
+    }
+
+    private String calculateUnixTime(String fromDate) throws ParseException {
+        String d = fromDate.substring(1, fromDate.length());
+        DateFormat dateFormat = new SimpleDateFormat("dd/MMM/yyyy:HH:mm:ss");
+        dateFormat.setTimeZone(TimeZone.getTimeZone("31"));
+        Date date = dateFormat.parse(d);
+        long diff = date.getTime();
+        
+        return TimeUnit.MILLISECONDS.toSeconds(diff) + "";
+    }
+    
+    private void generateUnixTime(ArrayList<Object[]> data) throws ParseException{
+        for (int i = 0; i < data.size(); i++){
+            String date = (String) data.get(i)[dateColumnNumber];
+            data.get(i)[15] = calculateUnixTime(date);
+            
+        }
     }
 
     private void filterExtensions(ArrayList<Object[]> data) {
@@ -226,26 +263,25 @@ public class LogFilter {
         for (int i = 0; i < data.size(); i++) {
             listener.onUpdate(i + 1, "Finding robots...");
             String url = (String) data.get(i)[URLColumnNumber];
-            String agent = (String) data.get(i)[agentColumnNumber] + " ";
-            if (url.contains("robots.txt") || (agent.contains("bot") || agent.contains("crawler"))) {
+            if (url.contains("robots.txt")) {
                 robotsIP.add((String) data.get(i)[0]);
             }
         }
-        
-        
+
         List<Integer> toRemove = new ArrayList<Integer>();
         for (int i = 0; i < data.size(); i++) {
             listener.onUpdate(i + 1, "Filtering robots...");
             String ipAddress = (String) data.get(i)[0];
-            if (robotsIP.contains(ipAddress)) {
+            String agent = (String) data.get(i)[agentColumnNumber] + " ";
+            if (robotsIP.contains(ipAddress) || agent.contains("bot") || agent.contains("crawler")) {
                 toRemove.add(i);
             }
         }
-         
+
         Collections.reverse(toRemove);
         for (Integer position : toRemove) {
             data.remove(position.intValue());
         }
     }
-    
+
 }
