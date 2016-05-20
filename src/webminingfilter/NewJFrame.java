@@ -6,7 +6,11 @@
 package webminingfilter;
 
 import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.ArrayList;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.swing.JFileChooser;
 import javax.swing.JOptionPane;
 import javax.swing.table.DefaultTableModel;
@@ -18,6 +22,7 @@ import javax.swing.table.DefaultTableModel;
 public class NewJFrame extends javax.swing.JFrame {
     private File selectedFile;
     private LogFilter logFilter;
+    ArrayList<Object[]> data;
 
     public NewJFrame() {
         initComponents();
@@ -59,6 +64,7 @@ public class NewJFrame extends javax.swing.JFrame {
         jSpinner4 = new javax.swing.JSpinner();
         jLabel12 = new javax.swing.JLabel();
         jSpinner5 = new javax.swing.JSpinner();
+        jButton4 = new javax.swing.JButton();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
         setTitle("Log tool");
@@ -237,6 +243,14 @@ public class NewJFrame extends javax.swing.JFrame {
                 .addContainerGap(27, Short.MAX_VALUE))
         );
 
+        jButton4.setText("Save log");
+        jButton4.setEnabled(false);
+        jButton4.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                jButton4ActionPerformed(evt);
+            }
+        });
+
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
         getContentPane().setLayout(layout);
         layout.setHorizontalGroup(
@@ -250,10 +264,11 @@ public class NewJFrame extends javax.swing.JFrame {
                         .addGap(18, 18, 18)
                         .addComponent(jPanel2, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)))
                 .addGap(35, 35, 35)
-                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addComponent(jButton2, javax.swing.GroupLayout.PREFERRED_SIZE, 83, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(jButton3, javax.swing.GroupLayout.PREFERRED_SIZE, 83, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(jButton1))
+                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
+                    .addComponent(jButton2, javax.swing.GroupLayout.DEFAULT_SIZE, 83, Short.MAX_VALUE)
+                    .addComponent(jButton3, javax.swing.GroupLayout.DEFAULT_SIZE, 83, Short.MAX_VALUE)
+                    .addComponent(jButton1)
+                    .addComponent(jButton4, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
                 .addContainerGap(87, Short.MAX_VALUE))
             .addComponent(jScrollPane1)
         );
@@ -270,7 +285,9 @@ public class NewJFrame extends javax.swing.JFrame {
                         .addGap(5, 5, 5)
                         .addComponent(jButton2)
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addComponent(jButton3))
+                        .addComponent(jButton3)
+                        .addGap(21, 21, 21)
+                        .addComponent(jButton4))
                     .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING, false)
                         .addComponent(jPanel2, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                         .addComponent(jPanel1, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)))
@@ -315,6 +332,7 @@ public class NewJFrame extends javax.swing.JFrame {
 
             @Override
             public void onFinish(int lines, ArrayList<Object[]> columns) {
+                data = columns;
                 jLabel2.setText(lines + " lines");
                 jLabel7.setText("0");
                 DefaultTableModel tableModel = new DefaultTableModel() {
@@ -338,6 +356,8 @@ public class NewJFrame extends javax.swing.JFrame {
                 jTable1.setModel(tableModel);
                 jButton3.setEnabled(true);
                 jLabel3.setText("Done");
+                jButton4.setEnabled(true);
+                
             }
 
             @Override
@@ -359,9 +379,44 @@ public class NewJFrame extends javax.swing.JFrame {
         logFilter.filterFile();
     }//GEN-LAST:event_jButton3ActionPerformed
 
+    private void jButton4ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton4ActionPerformed
+        try {
+            saveDataToFile(data);
+        } catch (IOException ex) {
+            Logger.getLogger(NewJFrame.class.getName()).log(Level.SEVERE, null, ex);
+        }
+    }//GEN-LAST:event_jButton4ActionPerformed
+
+    
+    private void saveDataToFile(ArrayList<Object[]> data) throws IOException{
+        JFileChooser fileChooser = new JFileChooser();
+        File saveFile = null;
+        if (fileChooser.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
+            saveFile = fileChooser.getSelectedFile();
+            jLabel3.setText("Saving to file...");
+        }
+        
+        StringBuilder  sb =  new StringBuilder();
+        for (int i = 0; i < data.size(); i++){
+            Object[] row = data.get(i);
+            for (Object row1 : row) {
+                sb.append(row1).append(" ");
+            }
+            sb.append("\n");
+                   
+        }
+        
+        try(FileWriter fw = new FileWriter(saveFile + ".txt")){
+            fw.write(sb.toString());
+        }
+        
+        jLabel3.setText("Save done.");
+    }
+    
     private void clearUI() {
         selectedFile = null;
         jButton3.setEnabled(false);
+        jButton4.setEnabled(false);
         jLabel2.setText("0 lines");
         jLabel3.setText("");
         jLabel7.setText("0");
@@ -407,6 +462,7 @@ public class NewJFrame extends javax.swing.JFrame {
     private javax.swing.JButton jButton1;
     private javax.swing.JButton jButton2;
     private javax.swing.JButton jButton3;
+    private javax.swing.JButton jButton4;
     private javax.swing.JCheckBox jCheckBox1;
     private javax.swing.JLabel jLabel1;
     private javax.swing.JLabel jLabel10;
