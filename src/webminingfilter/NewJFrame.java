@@ -6,11 +6,7 @@
 package webminingfilter;
 
 import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
 import java.util.ArrayList;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import javax.swing.JFileChooser;
 import javax.swing.JOptionPane;
 import javax.swing.table.DefaultTableModel;
@@ -20,9 +16,9 @@ import javax.swing.table.DefaultTableModel;
  * @author Kušický
  */
 public class NewJFrame extends javax.swing.JFrame {
+
     private File selectedFile;
     private LogFilter logFilter;
-    ArrayList<Object[]> data;
 
     public NewJFrame() {
         initComponents();
@@ -105,6 +101,7 @@ public class NewJFrame extends javax.swing.JFrame {
         });
 
         jPanel1.setBorder(javax.swing.BorderFactory.createBevelBorder(javax.swing.border.BevelBorder.RAISED));
+        jPanel1.setMinimumSize(new java.awt.Dimension(355, 82));
 
         jLabel6.setText("Actual state:");
 
@@ -125,19 +122,18 @@ public class NewJFrame extends javax.swing.JFrame {
             .addGroup(jPanel1Layout.createSequentialGroup()
                 .addGap(22, 22, 22)
                 .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addComponent(jLabel1)
+                    .addComponent(jLabel5)
+                    .addComponent(jLabel6))
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addComponent(jLabel3, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                     .addGroup(jPanel1Layout.createSequentialGroup()
-                        .addComponent(jLabel5)
-                        .addGap(18, 18, 18)
-                        .addComponent(jLabel7))
-                    .addGroup(jPanel1Layout.createSequentialGroup()
-                        .addComponent(jLabel6)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                        .addComponent(jLabel3))
-                    .addGroup(jPanel1Layout.createSequentialGroup()
-                        .addComponent(jLabel1)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addComponent(jLabel2)))
-                .addContainerGap(202, Short.MAX_VALUE))
+                        .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                            .addComponent(jLabel7)
+                            .addComponent(jLabel2))
+                        .addGap(0, 0, Short.MAX_VALUE)))
+                .addContainerGap())
         );
         jPanel1Layout.setVerticalGroup(
             jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -214,7 +210,7 @@ public class NewJFrame extends javax.swing.JFrame {
                 .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                     .addComponent(jSpinner3, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                     .addComponent(jSpinner4, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                .addContainerGap(30, Short.MAX_VALUE))
         );
         jPanel2Layout.setVerticalGroup(
             jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -258,11 +254,11 @@ public class NewJFrame extends javax.swing.JFrame {
             .addGroup(layout.createSequentialGroup()
                 .addContainerGap()
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
-                    .addComponent(jTextField2, javax.swing.GroupLayout.PREFERRED_SIZE, 798, javax.swing.GroupLayout.PREFERRED_SIZE)
                     .addGroup(layout.createSequentialGroup()
-                        .addComponent(jPanel1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addComponent(jPanel1, javax.swing.GroupLayout.PREFERRED_SIZE, 347, javax.swing.GroupLayout.PREFERRED_SIZE)
                         .addGap(18, 18, 18)
-                        .addComponent(jPanel2, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)))
+                        .addComponent(jPanel2, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                    .addComponent(jTextField2))
                 .addGap(35, 35, 35)
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
                     .addComponent(jButton2, javax.swing.GroupLayout.DEFAULT_SIZE, 83, Short.MAX_VALUE)
@@ -318,7 +314,7 @@ public class NewJFrame extends javax.swing.JFrame {
             JOptionPane.showMessageDialog(this, "Selected incorrect file, it should be log file with .log extension!", "File problem!", 2);
             return;
         }
-        logFilter = new LogFilter(selectedFile, delimiter, jCheckBox1.isSelected(),new UIFilterListener() {
+        logFilter = new LogFilter(selectedFile, delimiter, jCheckBox1.isSelected(), new UIFilterListener() {
             @Override
             public void onFirstLoad(int allLines) {
                 jLabel2.setText(allLines + " lines");
@@ -332,7 +328,6 @@ public class NewJFrame extends javax.swing.JFrame {
 
             @Override
             public void onFinish(int lines, ArrayList<Object[]> columns) {
-                data = columns;
                 jLabel2.setText(lines + " lines");
                 jLabel7.setText("0");
                 DefaultTableModel tableModel = new DefaultTableModel() {
@@ -357,62 +352,36 @@ public class NewJFrame extends javax.swing.JFrame {
                 jButton3.setEnabled(true);
                 jLabel3.setText("Done");
                 jButton4.setEnabled(true);
-                
+
             }
 
             @Override
             public void onFilterFileError(String message) {
                 JOptionPane.showMessageDialog(getRootPane(), message, "Filter error!", 2);
                 jButton3.setEnabled(false);
+                jButton4.setEnabled(false);
             }
-            
+
         });
         logFilter.loadFile();
     }//GEN-LAST:event_jButton2ActionPerformed
 
     private void jButton3ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton3ActionPerformed
-        logFilter.setURLColumnNumber((int)jSpinner1.getValue());
-        logFilter.setStatusCodeColumnNumber((int)jSpinner2.getValue());
-        logFilter.setMethodColumnNumber((int)jSpinner3.getValue());
+        logFilter.setURLColumnNumber((int) jSpinner1.getValue());
+        logFilter.setStatusCodeColumnNumber((int) jSpinner2.getValue());
+        logFilter.setMethodColumnNumber((int) jSpinner3.getValue());
         logFilter.setAgentColumnNumber((int) jSpinner4.getValue());
         logFilter.setDateColumnNumber((int) jSpinner5.getValue());
         logFilter.filterFile();
     }//GEN-LAST:event_jButton3ActionPerformed
 
     private void jButton4ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton4ActionPerformed
-        try {
-            saveDataToFile(data);
-        } catch (IOException ex) {
-            Logger.getLogger(NewJFrame.class.getName()).log(Level.SEVERE, null, ex);
+        JFileChooser fileChooser = new JFileChooser();
+        if (fileChooser.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
+            logFilter.saveDataToFile(fileChooser.getSelectedFile());
         }
     }//GEN-LAST:event_jButton4ActionPerformed
 
-    
-    private void saveDataToFile(ArrayList<Object[]> data) throws IOException{
-        JFileChooser fileChooser = new JFileChooser();
-        File saveFile = null;
-        if (fileChooser.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
-            saveFile = fileChooser.getSelectedFile();
-            jLabel3.setText("Saving to file...");
-        }
-        
-        StringBuilder  sb =  new StringBuilder();
-        for (int i = 0; i < data.size(); i++){
-            Object[] row = data.get(i);
-            for (Object row1 : row) {
-                sb.append(row1).append(" ");
-            }
-            sb.append("\n");
-                   
-        }
-        
-        try(FileWriter fw = new FileWriter(saveFile + ".txt")){
-            fw.write(sb.toString());
-        }
-        
-        jLabel3.setText("Save done.");
-    }
-    
     private void clearUI() {
         selectedFile = null;
         jButton3.setEnabled(false);

@@ -9,6 +9,7 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.text.DateFormat;
 import java.text.ParseException;
@@ -22,6 +23,7 @@ import java.util.TimeZone;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javax.swing.JFileChooser;
 
 /**
  *
@@ -91,9 +93,9 @@ public class LogFilter {
     public void setAgentColumnNumber(int agentColumnNumber) {
         this.agentColumnNumber = agentColumnNumber - 1;
     }
-    
-    public void setDateColumnNumber(int dateColumnNumber){
-        this.dateColumnNumber = dateColumnNumber -1;
+
+    public void setDateColumnNumber(int dateColumnNumber) {
+        this.dateColumnNumber = dateColumnNumber - 1;
     }
 
     public void filterFile() {
@@ -116,6 +118,14 @@ public class LogFilter {
                     listener.onFilterFileError("Provide method column number!");
                     return;
                 }
+                if (agentColumnNumber == -1) {
+                    listener.onFilterFileError("Provide agent column number!");
+                    return;
+                }
+                if (dateColumnNumber == -1) {
+                    listener.onFilterFileError("Provide date column number!");
+                    return;
+                }
 
                 filterExtensions(dataList);
 
@@ -126,12 +136,9 @@ public class LogFilter {
                 listener.onFinish(dataList.size(), dataList);
 
                 filterRobots(dataList);
-                
-                try {
-                    generateUnixTime(dataList);
-                } catch (ParseException ex) {
-                    Logger.getLogger(LogFilter.class.getName()).log(Level.SEVERE, null, ex);
-                }
+
+                generateUnixTime(dataList);
+
                 listener.onFinish(dataList.size(), dataList);
             }
         }).start();
@@ -189,38 +196,17 @@ public class LogFilter {
             listener.onUpdate(++actualLine, "Generating data table...");
             String row = (String) iterator.next();
             String[] parts = row.split(delimiter);
-            Object[] objects = new Object[16];
-
+            Object[] objects = new Object[15 + 1]; // +1 for unix time
             for (int j = 0; j < parts.length; j++) {
                 if (j < 15) {
                     objects[j] = parts[j];
                 } else {
                     objects[14] = (String) objects[14] + parts[j];
-                                    }
+                }
             }
-
             dataTableList.add(objects);
         }
-
         return dataTableList;
-    }
-
-    private String calculateUnixTime(String fromDate) throws ParseException {
-        String d = fromDate.substring(1, fromDate.length());
-        DateFormat dateFormat = new SimpleDateFormat("dd/MMM/yyyy:HH:mm:ss");
-        dateFormat.setTimeZone(TimeZone.getTimeZone("31"));
-        Date date = dateFormat.parse(d);
-        long diff = date.getTime();
-        
-        return TimeUnit.MILLISECONDS.toSeconds(diff) + "";
-    }
-    
-    private void generateUnixTime(ArrayList<Object[]> data) throws ParseException{
-        for (int i = 0; i < data.size(); i++){
-            String date = (String) data.get(i)[dateColumnNumber];
-            data.get(i)[15] = calculateUnixTime(date);
-            
-        }
     }
 
     private void filterExtensions(ArrayList<Object[]> data) {
@@ -272,8 +258,8 @@ public class LogFilter {
         for (int i = 0; i < data.size(); i++) {
             listener.onUpdate(i + 1, "Filtering robots...");
             String ipAddress = (String) data.get(i)[0];
-            String agent = (String) data.get(i)[agentColumnNumber] + " ";
-            if (robotsIP.contains(ipAddress) || agent.contains("bot") || agent.contains("crawler")) {
+            String agent = (String) data.get(i)[agentColumnNumber];
+            if (robotsIP.contains(ipAddress) || agent.contains("bot") || agent.contains("crawler") || agent.contains("spider")) {
                 toRemove.add(i);
             }
         }
@@ -284,4 +270,42 @@ public class LogFilter {
         }
     }
 
+    private void generateUnixTime(ArrayList<Object[]> data) {
+        try {
+            DateFormat dateFormat = new SimpleDateFormat("dd/MMM/yyyy:HH:mm:ss");
+            dateFormat.setTimeZone(TimeZone.getTimeZone("Etc/GMT"));
+            for (int i = 0; i < data.size(); i++) {
+                listener.onUpdate(i + 1, "Generating unix time...");
+                String dateString = (String) data.get(i)[dateColumnNumber];
+                dateString = dateString.substring(1, dateString.length());
+                Date date = dateFormat.parse(dateString);
+                data.get(i)[data.get(i).length - 1] = TimeUnit.MILLISECONDS.toSeconds(date.getTime());
+            }
+        } catch (ParseException ex) {
+            Logger.getLogger(LogFilter.class.getName()).log(Level.SEVERE, null, ex);
+        }
+    }
+
+    public void saveDataToFile(File saveFile) {
+        if (dataList == null) {
+            listener.onFilterFileError("You have to load file first!");
+            return;
+        }
+        
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < dataList.size(); i++) {
+            listener.onUpdate(i+1, "Saving to file...");
+            for (Object row1 : dataList.get(i)) {
+                sb.append(row1).append(" ");
+            }
+            sb.append("\n");
+        }
+
+        try (FileWriter fw = new FileWriter(saveFile + ".txt")) {
+            fw.write(sb.toString());
+        } catch (IOException e) {
+            Logger.getLogger(LogFilter.class.getName()).log(Level.SEVERE, null, e);
+        }
+        listener.onUpdate(0,"Saving done");
+    }
 }
