@@ -275,7 +275,7 @@ public class LogFilter {
             listener.onUpdate(i + 1, "Filtering robots...");
             String ipAddress = (String) data.get(i)[0];
             String agent = (String) data.get(i)[agentColumnNumber];
-            if (robotsIP.contains(ipAddress) || agent.contains("bot") || agent.contains("crawler") || agent.contains("spider")) {
+            if (robotsIP.contains(ipAddress) || agent.contains("bot") || agent.contains("crawler") || agent.contains("spider") || agent.contains("crawl")) {
                 toRemove.add(i);
             }
         }
