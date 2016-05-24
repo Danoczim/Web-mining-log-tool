@@ -15,19 +15,20 @@ import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Collections;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Locale;
 import java.util.TimeZone;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import javax.swing.JFileChooser;
 
 /**
  *
- * @author Danóczi & Kušický :D
+ * @author Danóczi & Kušický
  */
 public class LogFilter {
 
@@ -42,9 +43,10 @@ public class LogFilter {
     private int dateColumnNumber;
 
     private final UIFilterListener listener;
-    private ArrayList<String> unfilteredLog = new ArrayList<>();
+    private final ArrayList<String> unfilteredLog = new ArrayList<>();
     private ArrayList<Object[]> dataList;
 
+    private final ArrayList<String> weekDates;
     private final String[] fileTypes = new String[]{
         ".js",
         ".jpg",
@@ -59,21 +61,35 @@ public class LogFilter {
         ".xml",
         ".cur"
     };
-
-    private String[] week = new String[]{
-        "05/Dec/2011",
-        "06/Dec/2011",
-        "07/Dec/2011",
-        "08/Dec/2011",
-        "09/Dec/2011",
-        "10/Dec/2011",
-        "11/Dec/2011"
-    };
-
-    public LogFilter(File file, String delimiter, boolean filterDates, UIFilterListener filterListener) {
+    
+    private static DateFormat dateFormat = new SimpleDateFormat("dd/MMM/yyyy", Locale.ENGLISH);
+    public static boolean isValidDate(String dateString) {
+        try {
+            dateFormat.parse(dateString);
+            return true;
+        } catch (ParseException e) {
+            return false;
+        }
+    }
+    
+    public LogFilter(File file, String delimiter, boolean filterDates, String startDate, UIFilterListener filterListener) {
+        weekDates = new ArrayList<>();
         this.file = file;
         this.delimiter = delimiter;
         this.filterDates = filterDates;
+        if (this.filterDates == true) {
+            weekDates.add(startDate);
+            Calendar calendar = Calendar.getInstance(Locale.ENGLISH);
+            try {
+                calendar.setTime(dateFormat.parse(startDate));
+            } catch (ParseException ex) {
+                Logger.getLogger(LogFilter.class.getName()).log(Level.SEVERE, null, ex);
+            }
+            for (int i = 0; i < 6; i++) {
+                calendar.add(Calendar.DATE, 1);
+                weekDates.add(dateFormat.format(calendar.getTime()));
+            }
+        }
         this.listener = filterListener;
         this.URLColumnNumber = this.methodColumnNumber = this.statusCodeColumnNumber = this.agentColumnNumber = this.dateColumnNumber = -1;
     }
@@ -156,8 +172,8 @@ public class LogFilter {
 
                     while ((line = buffReader.readLine()) != null) {
                         numberOfAllLines++;
-                        if (filterDates) {
-                            for (String day : week) {
+                        if (filterDates) {                            
+                            for (String day : weekDates) {
                                 if (line.contains(day)) {
                                     unfilteredLog.add(line);
                                     actualLine++;
@@ -210,7 +226,7 @@ public class LogFilter {
     }
 
     private void filterExtensions(ArrayList<Object[]> data) {
-        List<Integer> toRemove = new ArrayList<Integer>();
+        List<Integer> toRemove = new ArrayList<>();
         for (int i = 0; i < data.size(); i++) {
             listener.onUpdate(i + 1, "Filtering file extensions...");
             String cell = (String) data.get(i)[URLColumnNumber];
@@ -229,7 +245,7 @@ public class LogFilter {
     }
 
     private void filterStatusCodesAndMethods(ArrayList<Object[]> data) {
-        List<Integer> toRemove = new ArrayList<Integer>();
+        List<Integer> toRemove = new ArrayList<>();
         for (int i = 0; i < data.size(); i++) {
             listener.onUpdate(i + 1, "Filtering status codes and methods...");
             String statusCode = (String) data.get(i)[statusCodeColumnNumber];
@@ -254,7 +270,7 @@ public class LogFilter {
             }
         }
 
-        List<Integer> toRemove = new ArrayList<Integer>();
+        List<Integer> toRemove = new ArrayList<>();
         for (int i = 0; i < data.size(); i++) {
             listener.onUpdate(i + 1, "Filtering robots...");
             String ipAddress = (String) data.get(i)[0];
@@ -291,10 +307,10 @@ public class LogFilter {
             listener.onFilterFileError("You have to load file first!");
             return;
         }
-        
+
         StringBuilder sb = new StringBuilder();
         for (int i = 0; i < dataList.size(); i++) {
-            listener.onUpdate(i+1, "Saving to file...");
+            listener.onUpdate(i + 1, "Saving to file...");
             for (Object row1 : dataList.get(i)) {
                 sb.append(row1).append(" ");
             }
@@ -306,6 +322,6 @@ public class LogFilter {
         } catch (IOException e) {
             Logger.getLogger(LogFilter.class.getName()).log(Level.SEVERE, null, e);
         }
-        listener.onUpdate(0,"Saving done");
+        listener.onUpdate(0, "Saving done");
     }
 }
