@@ -212,12 +212,12 @@ public class LogFilter {
             listener.onUpdate(++actualLine, "Generating data table...");
             String row = (String) iterator.next();
             String[] parts = row.split(delimiter);
-            Object[] objects = new Object[15 + 1]; // +1 for unix time
+            Object[] objects = new Object[12 + 1]; // +1 for unix time
             for (int j = 0; j < parts.length; j++) {
-                if (j < 15) {
+                if (j < 12) {
                     objects[j] = parts[j];
                 } else {
-                    objects[14] = (String) objects[14] + parts[j];
+                    objects[11] = (String) objects[11] + parts[j];
                 }
             }
             dataTableList.add(objects);
@@ -288,13 +288,13 @@ public class LogFilter {
 
     private void generateUnixTime(ArrayList<Object[]> data) {
         try {
-            DateFormat dateFormat = new SimpleDateFormat("dd/MMM/yyyy:HH:mm:ss");
-            dateFormat.setTimeZone(TimeZone.getTimeZone("Etc/GMT"));
+            DateFormat localDateFormat = new SimpleDateFormat("dd/MMM/yyyy:HH:mm:ss");
+            localDateFormat.setTimeZone(TimeZone.getTimeZone("Etc/GMT"));
             for (int i = 0; i < data.size(); i++) {
                 listener.onUpdate(i + 1, "Generating unix time...");
                 String dateString = (String) data.get(i)[dateColumnNumber];
                 dateString = dateString.substring(1, dateString.length());
-                Date date = dateFormat.parse(dateString);
+                Date date = localDateFormat.parse(dateString);
                 data.get(i)[data.get(i).length - 1] = TimeUnit.MILLISECONDS.toSeconds(date.getTime());
             }
         } catch (ParseException ex) {
