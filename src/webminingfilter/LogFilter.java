@@ -288,7 +288,7 @@ public class LogFilter {
 
     private void generateUnixTime(ArrayList<Object[]> data) {
         try {
-            DateFormat localDateFormat = new SimpleDateFormat("dd/MMM/yyyy:HH:mm:ss");
+            DateFormat localDateFormat = new SimpleDateFormat("dd/MMM/yyyy:HH:mm:ss",Locale.ENGLISH);
             localDateFormat.setTimeZone(TimeZone.getTimeZone("Etc/GMT"));
             for (int i = 0; i < data.size(); i++) {
                 listener.onUpdate(i + 1, "Generating unix time...");
